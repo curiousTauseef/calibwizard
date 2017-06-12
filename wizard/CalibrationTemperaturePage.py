@@ -61,7 +61,7 @@ class CalibratePhaseTableDelegate(QtGui.QItemDelegate):
     return spinbox
 
 class CalibrationTemperaturePage(CalibrationPage):
-  
+  #FIXME: Use the TemperatureCalibration function instead of directly computing the coefficients in this file  
   CSV_FILE_NAME = 'temperature-phase-offset.csv'
   MAX_PHASE_VALUE = 4096
   
@@ -298,11 +298,25 @@ class CalibrationTemperaturePage(CalibrationPage):
 #         '\ncoeff_illum_2 = %d, coeff_sensor_2 = %d,\n')%\
 #           (int(round(t1[1], 0)), int(round(t1[0], 0)), int(round(t2[1], 0)), int(round(t2[0], 0))))
 #     else:
-    t1 *= 16 # for calib_prec = 1
-    calibPrec = 1
-    if np.any(t1 >= 2048) or np.any(t1 < -2048):
-      t1 /= 16
-      calibPrec = 0
+    if self.calibrationWizard.camera == 'tintin.ti':
+        t1 *= 16 # for calib_prec = 1
+        calibPrec = 1
+        if np.any(t1 >= 2048) or np.any(t1 < -2048):
+          t1 /= 16
+          calibPrec = 0
+          
+    if self.calibrationWizard.camera == 'calculus.ti':
+        calibPrec = 8
+        coeff_illum *= 16
+        coeff_sensor *= 16
+        calibPrecDummy = calibPrec
+        while (calibPrecDummy < 12):
+            if coeff_illum > 2047 or coeff_illum < -2048 or coeff_sensor > 2047 or coeff_sensor < -2048:
+                coeff_illum /= 2
+                coeff_sensor /=2
+                calibPrec += 1
+            calibPrecDummy += 1
+    
     
     self.calibrationWizard.calibParams['coeff_illum'] = int(round(t1[1], 0))
     self.calibrationWizard.calibParams['coeff_sensor'] = int(round(t1[0], 0))
